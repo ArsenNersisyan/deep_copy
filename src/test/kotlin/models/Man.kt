@@ -1,4 +1,4 @@
-package arsen.nersisyan.models
+package models
 
 data class Man(
     var name: String,
