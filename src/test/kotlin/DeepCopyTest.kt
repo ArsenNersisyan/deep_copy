@@ -1,12 +1,14 @@
 import arsen.nersisyan.CopyUtils
-import arsen.nersisyan.models.Address
-import arsen.nersisyan.models.Man
-import arsen.nersisyan.models.Node
-import arsen.nersisyan.models.Person
+import models.Address
+import models.Man
+import models.NoPrimaryConstructor
+import models.Person
+import models.Node
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotSame
 
 class DeepCopyTest {
@@ -86,5 +88,17 @@ class DeepCopyTest {
         assertEquals(2, copiedNode1?.next?.value)
         assertTrue(copiedNode1?.next?.next === copiedNode1)
         println("✅Test Cyclic Node Copy passed")
+    }
+
+    @Test
+    fun testDeepCopyFailsOnNoPrimaryConstructor() {
+        val obj = NoPrimaryConstructor("no_primary_constructor")
+
+        val exception = assertFailsWith<IllegalStateException> {
+            CopyUtils.deepCopy(obj)
+        }
+
+        assert(exception.message!!.contains("must have a primary constructor"))
+        println("✅Test Deep Copy Fails On No Primary Constructor passed")
     }
 }

@@ -1,6 +1,6 @@
 package arsen.nersisyan
 
-import arsen.nersisyan.models.Node
+import java.util.IdentityHashMap
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
@@ -13,24 +13,18 @@ object CopyUtils {
      * @param obj - the object to deep copy.
      * @param visited - a map to handle cyclic references (original -> copied).
      */
-    fun <T : Any> deepCopy(obj: T?, visited: MutableMap<Any, Any?> = mutableMapOf()): T? {
+    fun <T : Any> deepCopy(obj: T?, visited: MutableMap<Any, Any?> = IdentityHashMap()): T? {
         // 1. Null or primitives
         if (obj == null) return null
         if (obj is String || obj.javaClass.isPrimitive || obj is Number || obj is Boolean || obj is Enum<*>) {
             return obj
         }
 
-        // 2. Handle cyclic Node manually
-        if (obj is Node) {
-            @Suppress("UNCHECKED_CAST")
-            return deepCopyNode(obj, visited as MutableMap<Node, Node>) as T
-        }
-
-        // 3. Cycle detection
+        // 2. Cyclic references
         @Suppress("UNCHECKED_CAST")
-        visited[obj]?.let { return it as? T }
+        visited[obj]?.let { return it as T }
 
-        // 4. Collections
+        // 3. Collections
         when (obj) {
             is List<*> -> {
                 val copy = obj.map { deepCopy(it, visited) }
@@ -66,9 +60,10 @@ object CopyUtils {
             }
         }
 
-        // 5. Custom objects via reflection
+        // 4. Default: custom class with primary constructor
         val kClass = obj::class
-        val constructor = kClass.primaryConstructor ?: return obj
+        val constructor = kClass.primaryConstructor
+            ?: error("Class ${kClass.simpleName} must have a primary constructor to be deep copied")
 
         constructor.isAccessible = true
 
@@ -90,17 +85,6 @@ object CopyUtils {
                 (prop as KMutableProperty1<Any, Any?>).set(copy, copiedValue)
             }
         }
-
-        return copy
-    }
-
-    private fun deepCopyNode(node: Node, visited: MutableMap<Node, Node> = mutableMapOf()): Node {
-        visited[node]?.let { return it } // Cycle detection
-
-        val copy = Node(node.value)
-        visited[node] = copy
-
-        copy.next = node.next?.let { deepCopyNode(it, visited) }
 
         return copy
     }
